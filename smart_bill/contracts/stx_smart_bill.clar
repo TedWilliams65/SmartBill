@@ -102,7 +102,7 @@
     (
       (subscription (unwrap! (get-subscription subscription-id) ERR_INVALID_SUBSCRIPTION))
       (user-principal tx-sender)
-      (current-block block-height)
+      (current-block burn-block-height)
       (existing-subscription (get-user-subscription user-principal subscription-id))
     )
     ;; Check if subscription is active
@@ -133,7 +133,7 @@
     (
       (subscription (unwrap! (get-subscription subscription-id) ERR_INVALID_SUBSCRIPTION))
       (user-sub (unwrap! (get-user-subscription user subscription-id) ERR_INVALID_SUBSCRIPTION))
-      (current-block block-height)
+      (current-block burn-block-height)
     )
     ;; Verify subscription is active
     (asserts! (get active subscription) ERR_SUBSCRIPTION_INACTIVE)
@@ -182,12 +182,20 @@
 (define-read-only (is-payment-due (user principal) (subscription-id uint))
   (let
     (
-      (user-sub (unwrap! (get-user-subscription user subscription-id) (err false)))
-      (current-block block-height)
+      (user-sub (map-get? user-subscriptions { user: user, subscription-id: subscription-id }))
+      (current-block burn-block-height)
     )
-    (and
-      (get active user-sub)
-      (>= current-block (get next-payment-block user-sub))
+    (if (is-some user-sub)
+      (let
+        (
+          (unwrapped-sub (unwrap-panic user-sub))
+        )
+        (and
+          (get active unwrapped-sub)
+          (>= current-block (get next-payment-block unwrapped-sub))
+        )
+      )
+      false
     )
   )
 )
